@@ -17,6 +17,7 @@ if __name__ == "__main__":
     while pyboy.tick():
         pyboy.button(valid_buttons[0])  # a
         pyboy.tick()
+        pyboy.screen.image.save("captures/test.png")
         pass
 
     pyboy.stop()
