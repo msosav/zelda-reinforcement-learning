@@ -1,2 +1,3 @@
 venv/
 roms/
+__pycache__/
