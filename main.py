@@ -1,6 +1,7 @@
 from PIL import Image
 from pyboy import PyBoy
 
+from config.memory_addresses import ADDR_CURRENT_HEALTH, ADDR_POSITION_8X8
 from utils.game_elements import detect_game_elements
 from utils.image_processing import detect_contours, process_image
 
@@ -20,7 +21,7 @@ def load_state(path: str, pyboy: PyBoy) -> None:
         pyboy.load_state(state)
 
 
-def get_game_elemets(screen_image: Image.Image) -> dict:
+def get_game_elements(pyboy: PyBoy) -> dict:
     """
     Extracts game elements from a screen image.
 
@@ -30,9 +31,10 @@ def get_game_elemets(screen_image: Image.Image) -> dict:
     Returns:
         dict: A dictionary containing the detected game elements.
     """
-    thresh_image, screen_np = process_image(screen_image)
-    contours, contour_image = detect_contours(thresh_image, screen_np)
-    game_elements = detect_game_elements(contours)
+    game_elements = {}
+
+    game_elements["current_health"] = pyboy.memory[ADDR_CURRENT_HEALTH] / 8
+    game_elements["links_position"] = pyboy.memory[ADDR_POSITION_8X8]
 
     return game_elements
 
@@ -44,9 +46,11 @@ if __name__ == "__main__":
 
     while pyboy.tick():
         pyboy.tick()
+
         screen_image = pyboy.screen.image
-        game_elements = get_game_elemets(screen_image)
-        print(game_elements)
-        pass
+        game_elements = get_game_elements(pyboy)
+
+        print("Health:", game_elements["current_health"])
+        print("Position:", game_elements["links_position"])
 
     pyboy.stop()
