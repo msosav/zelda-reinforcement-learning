@@ -1,9 +1,6 @@
-from PIL import Image
 from pyboy import PyBoy
 
 from config.memory_addresses import ADDR_CURRENT_HEALTH, ADDR_POSITION_8X8
-from utils.game_elements import detect_game_elements
-from utils.image_processing import detect_contours, process_image
 
 
 def load_state(path: str, pyboy: PyBoy) -> None:
@@ -40,9 +37,15 @@ def get_game_elements(pyboy: PyBoy) -> dict:
 
 
 if __name__ == "__main__":
-    pyboy = PyBoy("roms/ZeldaLinksAwakening.gb")
+    try:
+        pyboy = PyBoy("roms/ZeldaLinksAwakening.gb")
+    except (FileNotFoundError):
+        raise SystemExit("You should have your ROM in the roms/ folder")
 
-    load_state("roms/ZeldaLinksAwakening.gb.state", pyboy)
+    try:
+        load_state("roms/ZeldaLinksAwakening.gb.state", pyboy)
+    except (FileNotFoundError):
+        pass
 
     while pyboy.tick():
         pyboy.tick()
