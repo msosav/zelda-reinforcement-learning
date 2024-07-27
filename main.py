@@ -3,21 +3,6 @@ from pyboy import PyBoy
 from config.memory_addresses import ADDR_CURRENT_HEALTH, ADDR_POSITION_8X8
 
 
-def load_state(path: str, pyboy: PyBoy) -> None:
-    """
-    Load the state of the game from a file.
-
-    Args:
-        path (str): The path to the file containing the game state.
-        pyboy (PyBoy): The PyBoy instance representing the game.
-
-    Returns:
-        None
-    """
-    with open(path, "rb") as state:
-        pyboy.load_state(state)
-
-
 def get_game_elements(pyboy: PyBoy) -> dict:
     """
     Extracts game elements from a screen image.
@@ -43,7 +28,8 @@ if __name__ == "__main__":
         raise SystemExit("You should have your ROM in the roms/ folder")
 
     try:
-        load_state("roms/ZeldaLinksAwakening.gb.state", pyboy)
+        with open("roms/ZeldaLinksAwakening.gb.state", "rb") as state:
+            pyboy.load_state(state)
     except (FileNotFoundError):
         pass
 
@@ -52,8 +38,5 @@ if __name__ == "__main__":
 
         screen_image = pyboy.screen.image
         game_elements = get_game_elements(pyboy)
-
-        print("Health:", game_elements["current_health"])
-        print("Position:", game_elements["links_position"])
 
     pyboy.stop()
