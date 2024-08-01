@@ -25,26 +25,8 @@ class ZeldaGymEnv(gym.Env):
         if not self.debug:
             self.pyboy.set_emulation_speed(0)
 
-        self.valid_actions = [
-            WindowEvent.PRESS_ARROW_DOWN,
-            WindowEvent.PRESS_ARROW_LEFT,
-            WindowEvent.PRESS_ARROW_RIGHT,
-            WindowEvent.PRESS_ARROW_UP,
-            WindowEvent.PRESS_BUTTON_A,
-            WindowEvent.PRESS_BUTTON_B,
-        ]
-
-        self.release_arrow = [
-            WindowEvent.RELEASE_ARROW_DOWN,
-            WindowEvent.RELEASE_ARROW_LEFT,
-            WindowEvent.RELEASE_ARROW_RIGHT,
-            WindowEvent.RELEASE_ARROW_UP
-        ]
-
-        self.release_button = [
-            WindowEvent.RELEASE_BUTTON_A,
-            WindowEvent.RELEASE_BUTTON_B
-        ]
+        self.valid_actions = ['', 'a', 'b', 'left', 'right',
+                              'up', 'down', 'start', 'select']
 
         self.observation_space = spaces.Box(
             low=0, high=255, shape=(16, 20), dtype=np.uint8)
@@ -59,7 +41,7 @@ class ZeldaGymEnv(gym.Env):
         if action == 0:
             pass
         else:
-            self.pyboy.send_input(self.valid_actions[action])
+            self.pyboy.button(self.valid_actions[action])
 
         self.pyboy.tick()
 
