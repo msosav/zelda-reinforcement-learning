@@ -82,7 +82,12 @@ class ZeldaGymEnv(gym.Env):
 
     # TODO: Implement reset game
     def reset(self, **kwargs):
-        self.pyboy.game_wrapper.reset_game()
+        try:
+            with open(self.state_path, 'rb') as state_file:
+                self.pyboy.load_state(state_file)
+        except (FileNotFoundError):
+            pass
+
         self._fitness = 0
         self._previous_fitness = 0
 
