@@ -1,45 +1,19 @@
-from pyboy import PyBoy
-
-from config.memory_addresses import ADDR_CURRENT_HEALTH, ADDR_POSITION_8X8
-from config.movement import MOVEMENT
-import random
-
-
-def get_game_elements(pyboy: PyBoy) -> dict:
-    """
-    Extracts game elements from a screen image.
-
-    Args:
-        screen_image (PIL.Image.Image): The screen image to process.
-
-    Returns:
-        dict: A dictionary containing the detected game elements.
-    """
-    game_elements = {}
-
-    game_elements["current_health"] = pyboy.memory[ADDR_CURRENT_HEALTH] / 8
-    game_elements["links_position"] = pyboy.memory[ADDR_POSITION_8X8]
-
-    return game_elements
+from config.gym import ZeldaGymEnv
 
 
 if __name__ == "__main__":
-    try:
-        pyboy = PyBoy("roms/ZeldaLinksAwakening.gb")
-    except (FileNotFoundError):
-        raise SystemExit("You should have your ROM in the roms/ folder")
+    config = {
+        'rom_path': 'roms/ZeldaLinksAwakening.gb',
+        'state_path': 'roms/ZeldaLinksAwakening.gb.state'
+    }
 
-    try:
-        with open("roms/ZeldaLinksAwakening.gb.state", "rb") as state:
-            pyboy.load_state(state)
-    except (FileNotFoundError):
-        pass
+    env = ZeldaGymEnv(config, debug=True)
 
-    while pyboy.tick():
-        # pyboy.send_input(random.choice(MOVEMENT)[0], 3)
-        pyboy.tick()
-
-        screen_image = pyboy.screen.image
-        game_elements = get_game_elements(pyboy)
-
-    pyboy.stop()
+    done = True
+    for step in range(100000):
+        if done:
+            env.reset()
+        observation, reward, done, truncated, info = env.step(
+            env.action_space.sample())
+        env.render()
+    env.close()
