@@ -32,8 +32,6 @@ class ZeldaGymEnv(gym.Env):
             low=0, high=255, shape=(16, 20), dtype=np.uint8)
         self.action_space = spaces.Discrete(len(self.valid_actions))
 
-        # TODO: Implement game initialization
-
     def step(self, action):
         assert self.action_space.contains(
             action), "%r (%s) invalid" % (action, type(action))
