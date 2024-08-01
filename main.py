@@ -1,6 +1,8 @@
 from pyboy import PyBoy
 
 from config.memory_addresses import ADDR_CURRENT_HEALTH, ADDR_POSITION_8X8
+from config.movement import MOVEMENT
+import random
 
 
 def get_game_elements(pyboy: PyBoy) -> dict:
@@ -34,6 +36,7 @@ if __name__ == "__main__":
         pass
 
     while pyboy.tick():
+        # pyboy.send_input(random.choice(MOVEMENT)[0], 3)
         pyboy.tick()
 
         screen_image = pyboy.screen.image
