@@ -3,6 +3,7 @@ from gymnasium import spaces
 import numpy as np
 from pyboy import PyBoy
 from pyboy.utils import WindowEvent
+from .memory_addresses import *
 
 
 class ZeldaGymEnv(gym.Env):
@@ -60,10 +61,9 @@ class ZeldaGymEnv(gym.Env):
         else:
             self.pyboy.send_input(self.valid_actions[action])
 
-        self.pyboy.tick(1)
+        self.pyboy.tick()
 
-        # TODO: Implement game over logic
-        done = self.pyboy.game_wrapper.game_over
+        done = self.__game_over()
 
         self._calculate_fitness()
         reward = self._fitness-self._previous_fitness
@@ -74,13 +74,17 @@ class ZeldaGymEnv(gym.Env):
 
         return observation, reward, done, truncated, info
 
+    def __game_over(self):
+        if self.pyboy.memory[ADDR_CURRENT_HEALTH] == 0:
+            return True
+        return False
+
     def _calculate_fitness(self):
         self._previous_fitness = self._fitness
 
         # TODO: Implement reward logic
         self._fitness = 0
 
-    # TODO: Implement reset game
     def reset(self, **kwargs):
         try:
             with open(self.state_path, 'rb') as state_file:
