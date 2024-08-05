@@ -13,10 +13,9 @@ class ZeldaGymEnv(gym.Env):
         self.rom_path = config['rom_path']
         self.state_path = config['state_path']
 
-        try:
-            self.pyboy = PyBoy(self.rom_path)
-        except (FileNotFoundError):
-            raise SystemExit("You should have your ROM in the roms/ folder")
+        assert self.rom_path is not None, "ROM path is required"
+
+        self.pyboy = PyBoy(self.rom_path)
 
         self._fitness = 0
         self._previous_fitness = 0
