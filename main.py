@@ -1,5 +1,4 @@
-from config.gym import ZeldaGymEnv
-
+from config.preprocess import Preprocess
 
 if __name__ == "__main__":
     config = {
@@ -7,7 +6,7 @@ if __name__ == "__main__":
         'state_path': 'roms/ZeldaLinksAwakening.gb.state'
     }
 
-    env = ZeldaGymEnv(config, debug=True)
+    env = Preprocess(config)
 
     done = True
     for step in range(100000):
@@ -15,5 +14,6 @@ if __name__ == "__main__":
             env.reset()
         observation, reward, done, truncated, info = env.step(
             env.action_space.sample())
+        print(observation.shape)
         env.render()
     env.close()

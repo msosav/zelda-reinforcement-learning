@@ -1,8 +1,7 @@
-import gymnasium as gym
-from gymnasium import spaces
+import gym
+from gym.spaces import Box, Discrete
 import numpy as np
 from pyboy import PyBoy
-from pyboy.utils import WindowEvent
 from .memory_addresses import *
 
 
@@ -27,9 +26,10 @@ class ZeldaGymEnv(gym.Env):
         self.valid_actions = ['', 'a', 'b', 'left', 'right',
                               'up', 'down', 'start', 'select']
 
-        self.observation_space = spaces.Box(
-            low=0, high=255, shape=(16, 20), dtype=np.uint8)
-        self.action_space = spaces.Discrete(len(self.valid_actions))
+        self.observation_space = Box(
+            low=0, high=255, shape=(144, 160, 3), dtype=np.uint8)
+
+        self.action_space = Discrete(len(self.valid_actions))
 
         self.items = {
             '01': False,  # Sword
@@ -63,7 +63,8 @@ class ZeldaGymEnv(gym.Env):
         self._calculate_fitness()
         reward = self._fitness-self._previous_fitness
 
-        observation = self.pyboy.game_area()
+        observation = self.pyboy.screen.ndarray
+
         info = {}
         truncated = False
 
@@ -81,6 +82,8 @@ class ZeldaGymEnv(gym.Env):
 
         self._fitness += self._check_new_items()
 
+        # TODO: Sword and shield level
+
     def reset(self, **kwargs):
         try:
             with open(self.state_path, 'rb') as state_file:
@@ -91,7 +94,8 @@ class ZeldaGymEnv(gym.Env):
         self._fitness = 0
         self._previous_fitness = 0
 
-        observation = self.pyboy.game_area()
+        observation = self.pyboy.screen.ndarray
+
         info = {}
         return observation, info
 
