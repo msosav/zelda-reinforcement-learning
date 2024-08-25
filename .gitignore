@@ -1,3 +1,5 @@
 venv/
 roms/
 __pycache__/
+checkpoints/
+logs/
