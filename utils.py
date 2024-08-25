@@ -1,8 +1,9 @@
 import os
-from stable_baselines3.common.callbacks import BaseCallback  # For saving models
 
 from gymnasium.wrappers import gray_scale_observation
-from stable_baselines3.common.vec_env import VecFrameStack, DummyVecEnv
+from stable_baselines3.common.callbacks import BaseCallback  # For saving models
+from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
+
 from config.gym import ZeldaGymEnv
 
 
@@ -20,7 +21,7 @@ def PreprocessEnv(config: dict) -> VecFrameStack:
     env = ZeldaGymEnv(config, debug=True)
     env = gray_scale_observation.GrayScaleObservation(env, keep_dim=True)
     env = DummyVecEnv([lambda: env])
-    env = VecFrameStack(env, 4, channels_order='last')
+    env = VecFrameStack(env, 4, channels_order="last")
 
     return env
 
@@ -37,8 +38,7 @@ class CheckpointAndLoggingCallback(BaseCallback):
 
     def _on_step(self):
         if self.n_calls % self.chek_freq == 0:
-            model_path = os.path.join(
-                self.save_path, f"best_model_{self.n_calls}.zip")
+            model_path = os.path.join(self.save_path, f"best_model_{self.n_calls}.zip")
             self.model.save(model_path)
 
         return True

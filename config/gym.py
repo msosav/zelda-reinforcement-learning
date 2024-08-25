@@ -1,7 +1,8 @@
 import gymnasium as gym
-from gymnasium.spaces import Box, Discrete
 import numpy as np
+from gymnasium.spaces import Box, Discrete
 from pyboy import PyBoy
+
 from .memory_addresses import *
 
 
@@ -9,8 +10,8 @@ class ZeldaGymEnv(gym.Env):
 
     def __init__(self, config: dict, debug=False):
         super().__init__()
-        self.rom_path = config['rom_path']
-        self.state_path = config['state_path']
+        self.rom_path = config["rom_path"]
+        self.state_path = config["state_path"]
 
         assert self.rom_path is not None, "ROM path is required"
 
@@ -23,33 +24,45 @@ class ZeldaGymEnv(gym.Env):
         if not self.debug:
             self.pyboy.set_emulation_speed(0)
 
-        self.valid_actions = ['', 'a', 'b', 'left', 'right',
-                              'up', 'down', 'start', 'select']
+        self.valid_actions = [
+            "",
+            "a",
+            "b",
+            "left",
+            "right",
+            "up",
+            "down",
+            "start",
+            "select",
+        ]
 
         self.observation_space = Box(
-            low=0, high=255, shape=(144, 160, 3), dtype=np.uint8)
+            low=0, high=255, shape=(144, 160, 3), dtype=np.uint8
+        )
 
         self.action_space = Discrete(len(self.valid_actions))
 
         self.items = {
-            '01': False,  # Sword
-            '02': False,  # Bombs
-            '03': False,  # Power bracelet
-            '04': False,  # Shield
-            '05': False,  # Bow
-            '06': False,  # Hookshot
-            '07': False,  # Fire rod
-            '08': False,  # Pegasus boots
-            '09': False,  # Ocarina
-            '0A': False,  # Feather
-            '0B': False,  # Shovel
-            '0C': False,  # Magic powder
-            '0D': False  # Boomrang
+            "01": False,  # Sword
+            "02": False,  # Bombs
+            "03": False,  # Power bracelet
+            "04": False,  # Shield
+            "05": False,  # Bow
+            "06": False,  # Hookshot
+            "07": False,  # Fire rod
+            "08": False,  # Pegasus boots
+            "09": False,  # Ocarina
+            "0A": False,  # Feather
+            "0B": False,  # Shovel
+            "0C": False,  # Magic powder
+            "0D": False,  # Boomrang
         }
 
     def step(self, action):
-        assert self.action_space.contains(
-            action), "%r (%s) invalid" % (action, type(action))
+        assert self.action_space.contains(action), "%r (%s) invalid" % (
+            action,
+            type(action),
+        )
 
         if action == 0:
             pass
@@ -61,7 +74,7 @@ class ZeldaGymEnv(gym.Env):
         done = self.__game_over()
 
         self._calculate_fitness()
-        reward = self._fitness-self._previous_fitness
+        reward = self._fitness - self._previous_fitness
 
         observation = self.pyboy.screen.ndarray
 
@@ -86,9 +99,9 @@ class ZeldaGymEnv(gym.Env):
 
     def reset(self, **kwargs):
         try:
-            with open(self.state_path, 'rb') as state_file:
+            with open(self.state_path, "rb") as state_file:
                 self.pyboy.load_state(state_file)
-        except (FileNotFoundError):
+        except FileNotFoundError:
             pass
 
         self._fitness = 0
@@ -99,7 +112,7 @@ class ZeldaGymEnv(gym.Env):
         info = {}
         return observation, info
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         pass
 
     def close(self):
