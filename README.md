@@ -14,21 +14,21 @@ This repository contains the code for the project "The Legend of Zelda: Reinforc
 
 ## Installation
 
-1. Clone the repository
+Clone the repository
 
 ```bash
 git clone https://github.com/msosav/zelda-reinforcement-learning
 cd zelda-reinforcement-learning
 ```
 
-1. Create a virtual environment and activate it
+Create a virtual environment and activate it
 
 ```bash
 python -m venv venv
 source venv/bin/activate
 ```
 
-1. Install the requirements
+Install the requirements
 
 ```bash
 pip install -r requirements.txt
@@ -65,8 +65,3 @@ model = PPO.load("./checkpoints/{model_name}")
 The reward system is based on the following rules:
 
 - `+1` for each item in the inventory
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
