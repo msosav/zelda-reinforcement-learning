@@ -17,8 +17,11 @@ cd zelda-reinforcement-learning
 
 Create a virtual environment and activate it
 
+> [!NOTE]
+> You need to have python 3.11 installed in your machine.
+
 ```bash
-python -m venv venv
+python3.11 -m venv venv
 source venv/bin/activate
 ```
 
