@@ -1,16 +1,10 @@
+<div align="center">
+  <img src="./res/banner.png" alt="Banner" width="100%">
+</div>
+
 # The Legend of Zelda: Reinforcement Learning
 
 This repository contains the code for the project "The Legend of Zelda: Reinforcement Learning", it's purpose is to train an agent to play the game "The Legend of Zelda: Link's Awakening" for GameBoy using Reinforcement Learning.
-
-## Dependencies
-
-- `Python 3.11`
-- `pyboy`
-- `numpy`
-- `pytorch`
-- `gymnasium`
-- `stable-baselines3`
-- `opencv-python`
 
 ## Installation
 
@@ -28,6 +22,12 @@ python -m venv venv
 source venv/bin/activate
 ```
 
+Install pytorch
+
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+```
+
 Install the requirements
 
 ```bash
@@ -37,6 +37,9 @@ pip install -r requirements.txt
 ## Usage
 
 The program is divided into two main parts: the training and the testing.
+
+> [!NOTE]
+> You need to create a folder called `roms` in the root of the project and put the rom of the game "The Legend of Zelda: Link's Awakening" for GameBoy in it and name it `ZeldaLinksAwakening.gb`.
 
 ### Training
 
