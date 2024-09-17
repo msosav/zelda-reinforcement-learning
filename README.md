@@ -57,13 +57,13 @@ python main.py train
 To test the agent, run the following command:
 
 ```bash
-python main.py test
+python main.py test ./checkpoints/<checkpoint>.zip
 ```
 
-And then change the main.py file to use the trained model.
+Example:
 
-```python
-model = PPO.load("./checkpoints/{model_name}")
+```bash
+python main.py test ./checkpoints/best_model_5000.zip
 ```
 
 ## Reward System (WIP)

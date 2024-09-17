@@ -31,11 +31,15 @@ if __name__ == "__main__":
 
         model.learn(total_timesteps=1000000, callback=callback)
     elif mode == "test":
-        model = PPO.load("./checkpoints/best_model_22000")
+        checkpoint = sys.argv[2]
+        try:
+            model = PPO.load(checkpoint)
+        except:
+            print("Checkpoint not found")
+            sys.exit(1)
 
         observation = env.reset()
 
         while True:
             action, _state = model.predict(observation)
             observation, reward, done, info = env.step(action)
-            env.render()
