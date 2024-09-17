@@ -7,7 +7,6 @@ from utils import CheckpointAndLoggingCallback, PreprocessEnv
 if __name__ == "__main__":
     config = {
         "rom_path": "roms/ZeldaLinksAwakening.gb",
-        "state_path": "roms/ZeldaLinksAwakening.gb.state",
         "checkpoint_dir": "checkpoints/",
         "log_dir": "logs/",
     }

@@ -2,6 +2,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import Box, Discrete
 from pyboy import PyBoy
+from pyboy.utils import WindowEvent
 
 from .memory_addresses import *
 
@@ -11,7 +12,6 @@ class ZeldaGymEnv(gym.Env):
     def __init__(self, config: dict, debug=False):
         super().__init__()
         self.rom_path = config["rom_path"]
-        self.state_path = config["state_path"]
 
         assert self.rom_path is not None, "ROM path is required"
 
@@ -97,12 +97,22 @@ class ZeldaGymEnv(gym.Env):
 
         # TODO: Sword and shield level
 
+    def start_sequence(self):
+        self.pyboy.button("start")
+        self.pyboy.tick()
+        self.pyboy.button("start")
+        self.pyboy.tick()
+        self.pyboy.button("start")
+        self.pyboy.tick()
+        self.pyboy.button("a")
+        self.pyboy.tick()
+        self.pyboy.button("start")
+        self.pyboy.tick()
+        self.pyboy.button("start")
+        self.pyboy.tick()
+
     def reset(self, **kwargs):
-        try:
-            with open(self.state_path, "rb") as state_file:
-                self.pyboy.load_state(state_file)
-        except FileNotFoundError:
-            pass
+        self.start_sequence()
 
         self._fitness = 0
         self._previous_fitness = 0
