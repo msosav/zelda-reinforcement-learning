@@ -25,12 +25,6 @@ python3.11 -m venv venv
 source venv/bin/activate
 ```
 
-Install pytorch
-
-```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-```
-
 Install the requirements
 
 ```bash
