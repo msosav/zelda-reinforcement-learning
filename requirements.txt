@@ -17,7 +17,7 @@ gym-notices==0.0.8
 gymnasium==0.29.1
 idna==3.8
 importlib_resources==6.4.4
-Jinja2==3.1.4
+Jinja2==3.1.5
 kiwisolver==1.4.5
 Markdown==3.7
 markdown-it-py==3.0.0
