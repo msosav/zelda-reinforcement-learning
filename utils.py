@@ -1,8 +1,12 @@
 import os
 
+import gymnasium as gym
+
 from gymnasium.wrappers import gray_scale_observation
 from stable_baselines3.common.callbacks import BaseCallback  # For saving models
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
+from gymnasium.spaces import Box
+import numpy as np
 
 from config.gym import ZeldaGymEnv
 
@@ -19,11 +23,41 @@ def PreprocessEnv(config: dict) -> VecFrameStack:
     """
 
     env = ZeldaGymEnv(config, debug=True)
-    env = gray_scale_observation.GrayScaleObservation(env, keep_dim=True)
+    env = DictGrayScaleObservation(env)
     env = DummyVecEnv([lambda: env])
-    env = VecFrameStack(env, 4, channels_order="last")
 
     return env
+
+
+class DictGrayScaleObservation(gym.ObservationWrapper):
+    def __init__(self, env: gym.Env, keep_dim: bool = False):
+        super().__init__(env)
+        self.keep_dim = keep_dim
+
+        assert isinstance(env.observation_space,
+                          gym.spaces.Dict), "Observation space must be a Dict"
+
+        obs_shape = env.observation_space["screen"].shape[:2]
+
+        if self.keep_dim:
+            self.observation_space["screen"] = Box(
+                low=0, high=255, shape=(obs_shape[0], obs_shape[1], 1), dtype=np.uint8
+            )
+        else:
+            self.observation_space["screen"] = Box(
+                low=0, high=255, shape=obs_shape, dtype=np.uint8
+            )
+
+    def observation(self, observation):
+        import cv2
+
+        observation["screen"] = cv2.cvtColor(
+            observation["screen"], cv2.COLOR_RGB2GRAY)
+
+        if self.keep_dim:
+            observation["screen"] = np.expand_dims(observation["screen"], -1)
+
+        return observation
 
 
 class CheckpointAndLoggingCallback(BaseCallback):
