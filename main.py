@@ -2,6 +2,9 @@ import sys
 
 from stable_baselines3 import PPO
 
+from stable_baselines3.common.vec_env import SubprocVecEnv
+from stable_baselines3.common import env_checker
+
 from utils import CheckpointAndLoggingCallback, PreprocessEnv
 
 if __name__ == "__main__":
@@ -20,14 +23,8 @@ if __name__ == "__main__":
     mode = sys.argv[1]
 
     if mode == "train":
-        model = PPO(
-            "CnnPolicy",
-            env,
-            verbose=1,
-            tensorboard_log=config["log_dir"],
-            learning_rate=0.000001,
-            n_steps=512,
-        )
+        model = PPO("MultiInputPolicy", env, verbose=1, n_steps=2048,
+                    batch_size=512, n_epochs=1, gamma=0.997, ent_coef=0.01, tensorboard_log=config["log_dir"])
 
         model.learn(total_timesteps=1000000, callback=callback)
     elif mode == "test":

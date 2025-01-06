@@ -1,6 +1,6 @@
 import gymnasium as gym
 import numpy as np
-from gymnasium.spaces import Box, Discrete
+from gymnasium.spaces import Box, Discrete, Dict
 from pyboy import PyBoy
 from pyboy.utils import WindowEvent
 
@@ -36,9 +36,15 @@ class ZeldaGymEnv(gym.Env):
             "select",
         ]
 
-        self.observation_space = Box(
-            low=0, high=255, shape=(144, 160, 3), dtype=np.uint8
-        )
+        self.observation_space = Dict({
+            'screen': Box(low=0, high=255, shape=(144, 160, 3), dtype=np.uint8),
+            'room_type': Discrete(256),
+            'room_number': Discrete(256),
+            'current_room_layout': Box(low=0, high=255, shape=(156,), dtype=np.uint8),
+            'health': Discrete(16),
+            'rupees': Discrete(999),
+            'items_in_inventory': Discrete(13),
+        })
 
         self.action_space = Discrete(len(self.valid_actions))
 
@@ -76,7 +82,7 @@ class ZeldaGymEnv(gym.Env):
         self._calculate_fitness()
         reward = self._fitness - self._previous_fitness
 
-        observation = self.pyboy.screen.ndarray
+        observation = self._get_observation()
 
         info = {}
         truncated = False
@@ -117,7 +123,7 @@ class ZeldaGymEnv(gym.Env):
         self._fitness = 0
         self._previous_fitness = 0
 
-        observation = self.pyboy.screen.ndarray
+        observation = self._get_observation()
 
         info = {}
         return observation, info
@@ -137,3 +143,48 @@ class ZeldaGymEnv(gym.Env):
                 items_in_inventory_count += 1
 
         return items_in_inventory_count
+
+    def _check_rupees(self):
+        rupees = 0
+        for addr in ADDR_RUPEES:
+            rupees += self.pyboy.memory[addr]
+
+        return rupees
+
+    def _get_observation(self):
+        # Image observation
+        screen = self._get_screen()
+
+        # Room type
+        room_type = self.pyboy.memory[ADDR_DESTINATION_BYTE_1]
+
+        # Room number
+        room_number = self.pyboy.memory[ADDR_DESTINATION_BYTE_3]
+
+        # Current room layout
+        current_room_layout = [
+            self.pyboy.memory[addr] for addr in ADDR_CURRENTLY_LOADED_MAP
+        ]
+
+        # Health
+        health = self.pyboy.memory[ADDR_CURRENT_HEALTH] / 8
+
+        # Rupees
+        rupees = self._check_rupees()
+
+        # Items in inventory
+        items_in_inventory = sum(
+            [1 for item in self.items if self.items[item]])
+
+        return {
+            'screen': screen,
+            'room_type': room_type,
+            'room_number': room_number,
+            'current_room_layout': current_room_layout,
+            'health': health,
+            'rupees': rupees,
+            'items_in_inventory': items_in_inventory,
+        }
+
+    def _get_screen(self):
+        return self.pyboy.screen.ndarray
