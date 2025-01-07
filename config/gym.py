@@ -15,7 +15,7 @@ class ZeldaGymEnv(gym.Env):
 
         assert self.rom_path is not None, "ROM path is required"
 
-        self.pyboy = PyBoy(self.rom_path)
+        self.pyboy = PyBoy(self.rom_path, sound=config["game_with_sound"])
 
         self._fitness = 0
         self._previous_fitness = 0
