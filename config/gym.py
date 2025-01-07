@@ -155,24 +155,18 @@ class ZeldaGymEnv(gym.Env):
         # Image observation
         screen = self._get_screen()
 
-        # Room type
         room_type = self.pyboy.memory[ADDR_DESTINATION_BYTE_1]
 
-        # Room number
         room_number = self.pyboy.memory[ADDR_DESTINATION_BYTE_3]
 
-        # Current room layout
         current_room_layout = [
             self.pyboy.memory[addr] for addr in ADDR_CURRENTLY_LOADED_MAP
         ]
 
-        # Health
         health = self.pyboy.memory[ADDR_CURRENT_HEALTH] / 8
 
-        # Rupees
         rupees = self._check_rupees()
 
-        # Items in inventory
         items_in_inventory = sum(
             [1 for item in self.items if self.items[item]])
 
