@@ -38,12 +38,10 @@ class ZeldaGymEnv(gym.Env):
 
         self.observation_space = Dict({
             'screen': Box(low=0, high=255, shape=(144, 160, 3), dtype=np.uint8),
-            'room_type': Discrete(256),
-            'room_number': Discrete(256),
             'current_room_layout': Box(low=0, high=255, shape=(156,), dtype=np.uint8),
-            'health': Discrete(16),
-            'rupees': Discrete(999),
-            'items_in_inventory': Discrete(13),
+            'items_in_hand': Box(low=0, high=255, shape=(2,), dtype=np.uint8),
+            'health': Box(low=0, high=16, shape=(1,), dtype=np.uint8),
+            'rupees': Box(low=0, high=999, shape=(1,), dtype=np.uint8),
         })
 
         self.action_space = Discrete(len(self.valid_actions))
@@ -142,6 +140,13 @@ class ZeldaGymEnv(gym.Env):
                 self.items[item_in_inventory] = True
                 items_in_inventory_count += 1
 
+        for held_address in ADDR_HELD_ITEMS:
+            item_in_hand = self.pyboy.memory[held_address]
+
+            if item_in_hand in self.items:
+                self.items[item_in_hand] = True
+                items_in_inventory_count += 1
+
         return items_in_inventory_count
 
     def _check_rupees(self):
@@ -163,22 +168,25 @@ class ZeldaGymEnv(gym.Env):
             self.pyboy.memory[addr] for addr in ADDR_CURRENTLY_LOADED_MAP
         ]
 
-        health = self.pyboy.memory[ADDR_CURRENT_HEALTH] / 8
+        health = [self.pyboy.memory[ADDR_CURRENT_HEALTH] / 8]
 
-        rupees = self._check_rupees()
+        rupees = [self._check_rupees()]
 
         items_in_inventory = sum(
             [1 for item in self.items if self.items[item]])
 
-        return {
+        items_in_hand = [self.pyboy.memory[addr]
+                         for addr in ADDR_HELD_ITEMS]
+
+        obs = {
             'screen': screen,
-            'room_type': room_type,
-            'room_number': room_number,
             'current_room_layout': current_room_layout,
+            'items_in_hand': items_in_hand,
             'health': health,
-            'rupees': rupees,
-            'items_in_inventory': items_in_inventory,
+            'rupees': rupees
         }
+
+        return obs
 
     def _get_screen(self):
         return self.pyboy.screen.ndarray
