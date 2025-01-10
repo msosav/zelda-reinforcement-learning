@@ -34,7 +34,6 @@ class ZeldaGymEnv(gym.Env):
             WindowEvent.PRESS_BUTTON_A,
             WindowEvent.PRESS_BUTTON_B,
             WindowEvent.PRESS_BUTTON_START,
-            WindowEvent.PRESS_BUTTON_SELECT
         ]
 
         self.release_actions = [
@@ -45,7 +44,6 @@ class ZeldaGymEnv(gym.Env):
             WindowEvent.RELEASE_BUTTON_A,
             WindowEvent.RELEASE_BUTTON_B,
             WindowEvent.RELEASE_BUTTON_START,
-            WindowEvent.RELEASE_BUTTON_SELECT
         ]
 
         self.observation_space = Dict({
