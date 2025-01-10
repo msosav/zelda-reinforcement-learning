@@ -21,19 +21,31 @@ class ZeldaGymEnv(gym.Env):
         self._previous_fitness = 0
         self.debug = debug
 
+        self.action_freq = config["action_freq"]
+
         if not self.debug:
             self.pyboy.set_emulation_speed(0)
 
         self.valid_actions = [
-            "",
-            "a",
-            "b",
-            "left",
-            "right",
-            "up",
-            "down",
-            "start",
-            "select",
+            WindowEvent.PRESS_ARROW_DOWN,
+            WindowEvent.PRESS_ARROW_LEFT,
+            WindowEvent.PRESS_ARROW_RIGHT,
+            WindowEvent.PRESS_ARROW_UP,
+            WindowEvent.PRESS_BUTTON_A,
+            WindowEvent.PRESS_BUTTON_B,
+            WindowEvent.PRESS_BUTTON_START,
+            WindowEvent.PRESS_BUTTON_SELECT
+        ]
+
+        self.release_actions = [
+            WindowEvent.RELEASE_ARROW_DOWN,
+            WindowEvent.RELEASE_ARROW_LEFT,
+            WindowEvent.RELEASE_ARROW_RIGHT,
+            WindowEvent.RELEASE_ARROW_UP,
+            WindowEvent.RELEASE_BUTTON_A,
+            WindowEvent.RELEASE_BUTTON_B,
+            WindowEvent.RELEASE_BUTTON_START,
+            WindowEvent.RELEASE_BUTTON_SELECT
         ]
 
         self.observation_space = Dict({
@@ -73,7 +85,8 @@ class ZeldaGymEnv(gym.Env):
         else:
             self.pyboy.button(self.valid_actions[action])
 
-        self.pyboy.tick()
+    def step(self, action):
+        self.run_action(action)
 
         done = self.__game_over()
 
@@ -86,6 +99,17 @@ class ZeldaGymEnv(gym.Env):
         truncated = False
 
         return observation, reward, done, truncated, info
+
+    def run_action(self, action):
+        self.pyboy.send_input(self.valid_actions[action])
+        press_step = 8
+
+        self.action_freq = 24
+
+        self.pyboy.tick(press_step)
+        self.pyboy.send_input(self.release_actions[action])
+        self.pyboy.tick(self.action_freq - press_step - 1)
+        self.pyboy.tick(1, True)
 
     def __game_over(self):
         if self.pyboy.memory[ADDR_CURRENT_HEALTH] == 0:

@@ -12,6 +12,7 @@ if __name__ == "__main__":
         "rom_path": "roms/ZeldaLinksAwakening.gb",
         "checkpoint_dir": "checkpoints/",
         "log_dir": "logs/",
+        "action_freq": 24,
         "game_with_sound": True,
     }
 
