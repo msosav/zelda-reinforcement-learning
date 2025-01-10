@@ -56,6 +56,9 @@ class ZeldaGymEnv(gym.Env):
 
         self.action_space = Discrete(len(self.valid_actions))
 
+        self.exploration_reward = config["exploration_reward"]
+        self.reward_scale = config["reward_scale"]
+
         self.items = {
             "01": False,  # Sword
             "02": False,  # Bombs
@@ -119,9 +122,19 @@ class ZeldaGymEnv(gym.Env):
 
         self._fitness = 0
 
-        self._fitness += self._check_new_items()
+        self._fitness += self._check_new_items() * self.reward_scale
+        self._fitness += self._check_new_locations() * self.reward_scale * \
+            self.exploration_reward
 
         # TODO: Sword and shield level
+
+    def _check_new_locations(self):
+        explored_locations = 0
+        for addr in ADDR_WORLD_MAP_STATUS:
+            if self.pyboy.memory[addr] == 0x80:
+                explored_locations += 1
+
+        return explored_locations
 
     def start_sequence(self):
         self.pyboy.button("start")

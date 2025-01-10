@@ -13,6 +13,8 @@ if __name__ == "__main__":
         "checkpoint_dir": "checkpoints/",
         "log_dir": "logs/",
         "action_freq": 24,
+        "exploration_reward": 0.25,
+        "reward_scale": 1,
         "game_with_sound": True,
     }
 
