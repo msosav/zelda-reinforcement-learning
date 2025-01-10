@@ -25,6 +25,7 @@ def PreprocessEnv(config: dict) -> VecFrameStack:
     env = ZeldaGymEnv(config, debug=True)
     env = DictGrayScaleObservation(env)
     env = DummyVecEnv([lambda: env])
+    env = VecFrameStack(env, 4)
 
     return env
 
