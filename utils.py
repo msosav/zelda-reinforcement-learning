@@ -3,8 +3,7 @@ import os
 import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import Box
-from stable_baselines3.common.callbacks import \
-    BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
 
 from config.gym import ZeldaGymEnv
@@ -34,8 +33,9 @@ class DictGrayScaleObservation(gym.ObservationWrapper):
         super().__init__(env)
         self.keep_dim = keep_dim
 
-        assert isinstance(env.observation_space,
-                          gym.spaces.Dict), "Observation space must be a Dict"
+        assert isinstance(
+            env.observation_space, gym.spaces.Dict
+        ), "Observation space must be a Dict"
 
         obs_shape = env.observation_space["screen"].shape[:2]
 
@@ -51,8 +51,7 @@ class DictGrayScaleObservation(gym.ObservationWrapper):
     def observation(self, observation):
         import cv2
 
-        observation["screen"] = cv2.cvtColor(
-            observation["screen"], cv2.COLOR_RGB2GRAY)
+        observation["screen"] = cv2.cvtColor(observation["screen"], cv2.COLOR_RGB2GRAY)
 
         if self.keep_dim:
             observation["screen"] = np.expand_dims(observation["screen"], -1)
@@ -74,12 +73,13 @@ class CheckpointAndLoggingCallback(BaseCallback):
 
     def _on_step(self):
         # Log episode info
-        if self.locals.get('done'):
-            self.logger.record('game/episode_reward',
-                               self.locals.get('rewards')[0])
-            self.logger.record('game/episode_length', self.n_calls)
-            self.logger.record('game/current_health',
-                               self.training_env.get_attr('pyboy')[0].memory[0xDB5A])
+        if self.locals.get("done"):
+            self.logger.record("game/episode_reward", self.locals.get("rewards")[0])
+            self.logger.record("game/episode_length", self.n_calls)
+            self.logger.record(
+                "game/current_health",
+                self.training_env.get_attr("pyboy")[0].memory[0xDB5A],
+            )
 
         # Save model checkpoint
         if self.n_calls % self.check_freq == 0:

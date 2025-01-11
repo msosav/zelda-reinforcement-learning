@@ -24,8 +24,17 @@ if __name__ == "__main__":
     mode = sys.argv[1]
 
     if mode == "train":
-        model = PPO("MultiInputPolicy", env, verbose=1, n_steps=2048,
-                    batch_size=512, n_epochs=1, gamma=0.997, ent_coef=0.01, tensorboard_log=config["log_dir"])
+        model = PPO(
+            "MultiInputPolicy",
+            env,
+            verbose=1,
+            n_steps=2048,
+            batch_size=512,
+            n_epochs=1,
+            gamma=0.997,
+            ent_coef=0.01,
+            tensorboard_log=config["log_dir"],
+        )
 
         model.learn(total_timesteps=1000000, callback=callback)
     elif mode == "test":
