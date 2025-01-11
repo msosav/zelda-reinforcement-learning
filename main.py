@@ -9,10 +9,14 @@ if __name__ == "__main__":
         "rom_path": "roms/ZeldaLinksAwakening.gb",
         "checkpoint_dir": "checkpoints/",
         "log_dir": "logs/",
+        "action_freq": 24,
+        "exploration_reward": 0.25,
+        "reward_scale": 1,
+        "game_with_sound": True,
     }
 
     callback = CheckpointAndLoggingCallback(
-        check_freq=1000, save_path=config["checkpoint_dir"]
+        check_freq=5000, save_path=config["checkpoint_dir"]
     )
 
     env = PreprocessEnv(config)
@@ -21,12 +25,15 @@ if __name__ == "__main__":
 
     if mode == "train":
         model = PPO(
-            "CnnPolicy",
+            "MultiInputPolicy",
             env,
             verbose=1,
+            n_steps=2048,
+            batch_size=512,
+            n_epochs=1,
+            gamma=0.997,
+            ent_coef=0.01,
             tensorboard_log=config["log_dir"],
-            learning_rate=0.000001,
-            n_steps=512,
         )
 
         model.learn(total_timesteps=1000000, callback=callback)

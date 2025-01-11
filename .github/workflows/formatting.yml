@@ -1,0 +1,39 @@
+name: Formatter
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Black formatter
+        run: |
+          black .
+
+      - name: Isort formatter
+        run: |
+          isort .
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Fix formatting
+          skip_fetch: true
+          branch: ${{ github.head_ref }}
