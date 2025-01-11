@@ -1,6 +1,6 @@
 import gymnasium as gym
 import numpy as np
-from gymnasium.spaces import Box, Discrete, Dict
+from gymnasium.spaces import Box, Dict, Discrete
 from pyboy import PyBoy
 from pyboy.utils import WindowEvent
 

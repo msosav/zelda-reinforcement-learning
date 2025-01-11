@@ -1,9 +1,10 @@
 import os
 
 import gymnasium as gym
-
-from gymnasium.wrappers import gray_scale_observation
-from stable_baselines3.common.callbacks import BaseCallback  # For saving models
+import numpy as np
+from gymnasium.spaces import Box
+from stable_baselines3.common.callbacks import \
+    BaseCallback
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
 from gymnasium.spaces import Box
 import numpy as np

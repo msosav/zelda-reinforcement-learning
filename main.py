@@ -2,9 +2,6 @@ import sys
 
 from stable_baselines3 import PPO
 
-from stable_baselines3.common.vec_env import SubprocVecEnv
-from stable_baselines3.common import env_checker
-
 from utils import CheckpointAndLoggingCallback, PreprocessEnv
 
 if __name__ == "__main__":
