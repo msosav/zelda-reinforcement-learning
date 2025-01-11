@@ -6,8 +6,6 @@ from gymnasium.spaces import Box
 from stable_baselines3.common.callbacks import \
     BaseCallback
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
-from gymnasium.spaces import Box
-import numpy as np
 
 from config.gym import ZeldaGymEnv
 
