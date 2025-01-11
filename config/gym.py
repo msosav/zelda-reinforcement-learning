@@ -50,6 +50,7 @@ class ZeldaGymEnv(gym.Env):
             'screen': Box(low=0, high=255, shape=(144, 160, 3), dtype=np.uint8),
             'current_room_layout': Box(low=0, high=255, shape=(156,), dtype=np.uint8),
             'items_in_hand': Box(low=0, high=255, shape=(2,), dtype=np.uint8),
+            'items_in_inventory': Box(low=0, high=255, shape=(9,)),
             'health': Box(low=0, high=16, shape=(1,), dtype=np.uint8),
             'rupees': Box(low=0, high=999, shape=(1,), dtype=np.uint8),
         })
@@ -74,17 +75,6 @@ class ZeldaGymEnv(gym.Env):
             "0C": False,  # Magic powder
             "0D": False,  # Boomrang
         }
-
-    def step(self, action):
-        assert self.action_space.contains(action), "%r (%s) invalid" % (
-            action,
-            type(action),
-        )
-
-        if action == 0:
-            pass
-        else:
-            self.pyboy.button(self.valid_actions[action])
 
     def step(self, action):
         self.run_action(action)
@@ -125,6 +115,9 @@ class ZeldaGymEnv(gym.Env):
         self._fitness += self._check_new_items() * self.reward_scale
         self._fitness += self._check_new_locations() * self.reward_scale * \
             self.exploration_reward
+
+        if self.moving_things_in_inventory:
+            self._fitness -= 0.1 * self.reward_scale
 
         # TODO: Sword and shield level
 
@@ -175,14 +168,20 @@ class ZeldaGymEnv(gym.Env):
                 self.items[item_in_inventory] = True
                 items_in_inventory_count += 1
 
+        items_in_hand_count = 0
         for held_address in ADDR_HELD_ITEMS:
             item_in_hand = self.pyboy.memory[held_address]
 
             if item_in_hand in self.items:
                 self.items[item_in_hand] = True
-                items_in_inventory_count += 1
+                items_in_hand_count += 1
 
-        return items_in_inventory_count
+        if items_in_hand_count < 2 and items_in_inventory_count >= items_in_hand_count and items_in_inventory_count != 0:
+            self.moving_things_in_inventory = True
+        else:
+            self.moving_things_in_inventory = False
+
+        return items_in_inventory_count + items_in_hand_count
 
     def _check_rupees(self):
         rupees = 0
@@ -207,8 +206,8 @@ class ZeldaGymEnv(gym.Env):
 
         rupees = [self._check_rupees()]
 
-        items_in_inventory = sum(
-            [1 for item in self.items if self.items[item]])
+        items_in_inventory = [self.pyboy.memory[addr]
+                              for addr in ADDR_INVENTORY]
 
         items_in_hand = [self.pyboy.memory[addr]
                          for addr in ADDR_HELD_ITEMS]
@@ -217,6 +216,7 @@ class ZeldaGymEnv(gym.Env):
             'screen': screen,
             'current_room_layout': current_room_layout,
             'items_in_hand': items_in_hand,
+            'items_in_inventory': items_in_inventory,
             'health': health,
             'rupees': rupees
         }
