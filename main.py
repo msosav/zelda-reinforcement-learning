@@ -19,7 +19,7 @@ if __name__ == "__main__":
     }
 
     callback = CheckpointAndLoggingCallback(
-        check_freq=1000, save_path=config["checkpoint_dir"]
+        check_freq=5000, save_path=config["checkpoint_dir"]
     )
 
     env = PreprocessEnv(config)
