@@ -4,3 +4,4 @@ roms/
 __pycache__/
 checkpoints/
 logs/
+.DS_Store
