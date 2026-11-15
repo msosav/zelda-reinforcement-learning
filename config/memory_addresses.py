@@ -2,6 +2,16 @@
 
 # Memory Addresses and Their Purpose
 
+# Startup and menus
+# 00: Intro/title, 02: File select, 03: Name entry, 0B: World
+ADDR_GAMEPLAY_TYPE = 0xDB95
+# File select 07: Ready, name entry 02: Ready, world 07: Playing
+ADDR_GAMEPLAY_SUBTYPE = 0xDB96
+ADDR_SAVE_SLOT = 0xDBA6  # 00-02: Save slots, 03: Copy/erase menu row
+ADDR_SAVE_FILES_EXIST = 0xDBA7  # Bits 0-2 indicate which save slots have a name
+ADDR_NAME_ENTRY_POSITION = 0xDBAA  # 00-04: Position of the next character in the name
+ADDR_DIALOG_STATE = 0xC19F  # 00: No dialogue, nonzero: Dialogue box open
+
 # Destination data
 ADDR_DESTINATION_BYTE_1 = 0xD401  # 00: Overworld, 01: Dungeon, 02: Side view area
 # Values from 00 to 1F accepted. FF is Color Dungeon

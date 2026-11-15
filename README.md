@@ -37,6 +37,8 @@ The program is divided into two main parts: the training and the testing.
 > [!NOTE]
 > You need to create a folder called `roms` in the root of the project and put the rom of the game "The Legend of Zelda: Link's Awakening" for GameBoy in it and name it `ZeldaLinksAwakening.gb`.
 
+Startup waits for each menu to be ready, creates a new game in the first empty save slot with the name `A`, and stops at Marin's first dialogue after Link wakes up. The agent advances the dialogue and gets Link out of bed. Each episode resets to this same in-memory emulator state. Existing saves are not overwritten; startup fails explicitly if all three slots are occupied or it cannot reach the wake-up dialogue within 7,200 frames (about two minutes of game time).
+
 ### Training
 
 To train the agent, run the following command:

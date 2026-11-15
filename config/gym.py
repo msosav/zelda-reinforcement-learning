@@ -1,3 +1,5 @@
+from io import BytesIO
+
 import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import Box, Dict, Discrete
@@ -19,6 +21,7 @@ class ZeldaGymEnv(gym.Env):
 
         self._fitness = 0
         self._previous_fitness = 0
+        self._initial_state: BytesIO | None = None
         self.debug = debug
 
         self.action_freq = config["action_freq"]
@@ -135,24 +138,74 @@ class ZeldaGymEnv(gym.Env):
         return explored_locations
 
     def start_sequence(self):
-        self.pyboy.button("start")
-        self.pyboy.tick()
-        self.pyboy.button("start")
-        self.pyboy.tick()
-        self.pyboy.button("start")
-        self.pyboy.tick()
-        self.pyboy.button("a")
-        self.pyboy.tick()
-        self.pyboy.button("start")
-        self.pyboy.tick()
-        self.pyboy.button("start")
-        self.pyboy.tick()
+        save_slot = None
+        name_entered = False
+
+        for _ in range(300):
+            gameplay_type = self.pyboy.memory[ADDR_GAMEPLAY_TYPE]
+            gameplay_subtype = self.pyboy.memory[ADDR_GAMEPLAY_SUBTYPE]
+            button = None
+
+            if gameplay_type == 0x00:
+                button = "start"
+            elif (gameplay_type, gameplay_subtype) == (0x02, 0x07):
+                if save_slot is None:
+                    occupied_slots = self.pyboy.memory[ADDR_SAVE_FILES_EXIST]
+                    save_slot = next(
+                        (slot for slot in range(3) if not occupied_slots & (1 << slot)),
+                        None,
+                    )
+                    if save_slot is None:
+                        raise RuntimeError(
+                            "Cannot start a new game: all three save slots are occupied."
+                        )
+                button = (
+                    "start"
+                    if self.pyboy.memory[ADDR_SAVE_SLOT] == save_slot
+                    else "down"
+                )
+            elif (gameplay_type, gameplay_subtype) == (0x03, 0x02):
+                if self.pyboy.memory[ADDR_NAME_ENTRY_POSITION] == 0:
+                    button = "a"
+                else:
+                    button = "start"
+                    name_entered = True
+            elif (
+                name_entered
+                and (gameplay_type, gameplay_subtype) == (0x0B, 0x07)
+                and self.pyboy.memory[ADDR_CURRENT_HEALTH] > 0
+                and self.pyboy.memory[ADDR_DIALOG_STATE] != 0
+            ):
+                # Marin's first dialogue marks the end of Link's wake-up animation.
+                initial_state = BytesIO()
+                self.pyboy.save_state(initial_state)
+                self._initial_state = initial_state
+                return
+
+            if button is not None:
+                self.pyboy.button(button, 8)
+            if not self.pyboy.tick(8, False) or not self.pyboy.tick(16, True):
+                raise RuntimeError("Emulation stopped during the startup sequence.")
+
+        raise RuntimeError(
+            "Startup timed out before Link woke up "
+            f"(gameplay type=0x{self.pyboy.memory[ADDR_GAMEPLAY_TYPE]:02X}, "
+            f"subtype=0x{self.pyboy.memory[ADDR_GAMEPLAY_SUBTYPE]:02X})."
+        )
 
     def reset(self, **kwargs):
-        self.start_sequence()
+        super().reset(**kwargs)
+
+        if self._initial_state is None:
+            self.start_sequence()
+        else:
+            self._initial_state.seek(0)
+            self.pyboy.load_state(self._initial_state)
 
         self._fitness = 0
         self._previous_fitness = 0
+        self.moving_things_in_inventory = False
+        self.items = dict.fromkeys(self.items, False)
 
         observation = self._get_observation()
 

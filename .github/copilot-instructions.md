@@ -33,6 +33,7 @@ The environment stack is assembled across three files:
 
 ## Key conventions and gotchas
 
+- Never manually wrap prose paragraphs with hard line breaks. Keep each paragraph on a single source line and let the editor or renderer handle visual wrapping.
 - **Observations are a `Dict` space** (`screen`, `current_room_layout`, `items_in_hand`, `items_in_inventory`, `health`, `rupees`), so PPO uses `"MultiInputPolicy"`. When adding an observation key, update both `observation_space` in `ZeldaGymEnv.__init__` and the dict returned by `_get_observation()`.
 - **Reward is a fitness delta.** `_calculate_fitness()` recomputes total fitness from scratch from current RAM state each step, and `step()` returns `self._fitness - self._previous_fitness`. New reward terms should be absolute state-derived quantities added to `_fitness`, scaled by `self.reward_scale`. Update the "Reward System" section of `README.md` when changing rewards.
 - `_check_new_items()` also sets `self.moving_things_in_inventory` as a side effect, which `_calculate_fitness()` reads afterward; keep that call order.
