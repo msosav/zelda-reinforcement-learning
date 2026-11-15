@@ -1,4 +1,5 @@
 venv/
+.venv/
 roms/
 __pycache__/
 checkpoints/

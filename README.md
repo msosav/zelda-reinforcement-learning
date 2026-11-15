@@ -15,20 +15,19 @@ git clone https://github.com/msosav/zelda-reinforcement-learning
 cd zelda-reinforcement-learning
 ```
 
-Create a virtual environment and activate it
+Create a virtual environment
 
 > [!NOTE]
-> You need to have python 3.11 installed in your machine.
+> You need to have [uv](https://docs.astral.sh/uv/) installed in your machine. It will fetch Python 3.11 if needed.
 
 ```bash
-python3.11 -m venv venv
-source venv/bin/activate
+uv venv --python 3.11
 ```
 
 Install the requirements
 
 ```bash
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
 
 ## Usage
@@ -43,7 +42,7 @@ The program is divided into two main parts: the training and the testing.
 To train the agent, run the following command:
 
 ```bash
-python main.py train
+uv run main.py train
 ```
 
 ### Testing
@@ -51,13 +50,13 @@ python main.py train
 To test the agent, run the following command:
 
 ```bash
-python main.py test ./checkpoints/<checkpoint>.zip
+uv run main.py test ./checkpoints/<checkpoint>.zip
 ```
 
 Example:
 
 ```bash
-python main.py test ./checkpoints/best_model_5000.zip
+uv run main.py test ./checkpoints/best_model_5000.zip
 ```
 
 ## Reward System (WIP)
