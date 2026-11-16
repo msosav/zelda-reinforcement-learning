@@ -1,9 +1,11 @@
+import copy
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import numpy as np
 
+import main
 from config import memory_addresses as ram
 from config.gym import ZeldaGymEnv
 
@@ -115,13 +117,9 @@ class StartupPyBoy:
 
 class StartSequenceTests(unittest.TestCase):
     def make_env(self, pyboy):
-        config = {
-            "rom_path": "unused.gb",
-            "game_with_sound": False,
-            "action_freq": 24,
-            "exploration_reward": 0.25,
-            "reward_scale": 1,
-        }
+        config = copy.deepcopy(main.config)
+        config["rom_path"] = "unused.gb"
+        config["game_with_sound"] = False
         with patch("config.gym.PyBoy", return_value=pyboy):
             return ZeldaGymEnv(config, debug=True)
 
@@ -134,8 +132,8 @@ class StartSequenceTests(unittest.TestCase):
                 observation, info = env.reset()
 
                 self.assertEqual(pyboy.stage, "awake")
-                self.assertEqual(observation["health"], [3])
-                self.assertEqual(info, {})
+                self.assertAlmostEqual(observation["health"][0], 3 / 14)
+                self.assertEqual(sum(info["credits"].values()), 0)
                 self.assertEqual(pyboy.memory[ram.ADDR_NAME_ENTRY_POSITION], 1)
                 self.assertEqual(pyboy.save_calls, 1)
                 self.assertIsNone(pyboy.held_button)
@@ -178,8 +176,8 @@ class StartSequenceTests(unittest.TestCase):
             pyboy.screen.ndarray.fill(123)
             env._fitness = 100
             env._previous_fitness = 90
-            env.items["01"] = True
-            env.moving_things_in_inventory = True
+            env._ep.ledger.credit("new_room", 2)
+            env._ep.visited_rooms.add((1, 0x55, 0x55))
 
             observation, _ = env.reset()
 
@@ -189,8 +187,8 @@ class StartSequenceTests(unittest.TestCase):
             self.assertEqual(pyboy.buttons, initial_buttons)
             self.assertEqual(env._fitness, 0)
             self.assertEqual(env._previous_fitness, 0)
-            self.assertFalse(any(env.items.values()))
-            self.assertFalse(env.moving_things_in_inventory)
+            self.assertEqual(env._ep.ledger.fitness(), 0)
+            self.assertNotIn((1, 0x55, 0x55), env._ep.visited_rooms)
         self.assertEqual(pyboy.save_calls, 1)
         self.assertEqual(pyboy.load_calls, 2)
 

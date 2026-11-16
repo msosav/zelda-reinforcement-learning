@@ -17,7 +17,7 @@ farama-notifications==0.0.4
 filelock==4.2.1
 fonttools==4.60.2
 fsspec==2026.6.0
-grpcio==1.66.0
+grpcio==1.85.1
 gym==0.26.2
 gym-notices==0.0.8
 gymnasium==0.29.1
@@ -47,7 +47,7 @@ pathspec==1.0.0
 pillow==13.0.0
 platformdirs==4.3.6
 prompt-toolkit==3.0.48
-protobuf==5.29.6
+protobuf==7.36.2
 psutil==6.0.0
 pure-eval==0.2.3
 pyboy==2.2.2
@@ -67,7 +67,7 @@ six==1.16.0
 stable-baselines3==2.3.2
 stack-data==0.6.3
 sympy==1.13.3
-tensorboard==2.17.1
+tensorboard==2.21.0
 tensorboard-data-server==0.7.2
 torch==2.13.0
 torchaudio==2.11.1
