@@ -77,6 +77,7 @@ REWARD_KEYS = (
 STAGNATION_KEYS = (
     "window_seconds",
     "base_rate",
+    "room_loop_base_rate",
     "rate_step",
     "max_rate",
     "jitter_pixels",
@@ -141,9 +142,14 @@ def validate_config(config: dict) -> SimpleNamespace:
 
     stagnation = _require_section(config, "stagnation", STAGNATION_KEYS)
     _number("stagnation", stagnation, "window_seconds", low=1.0)
-    for key in ("base_rate", "rate_step"):
+    for key in ("base_rate", "room_loop_base_rate", "rate_step"):
         _number("stagnation", stagnation, key)
-    _number("stagnation", stagnation, "max_rate", low=stagnation["base_rate"])
+    _number(
+        "stagnation",
+        stagnation,
+        "max_rate",
+        low=max(stagnation["base_rate"], stagnation["room_loop_base_rate"]),
+    )
     _number("stagnation", stagnation, "jitter_pixels", high=255, integer=True)
     _number("stagnation", stagnation, "bucket_pixels", low=1, high=255, integer=True)
     _number("stagnation", stagnation, "stationary_fraction", low=0.5, high=1.0)
@@ -325,11 +331,16 @@ class StagnationTracker:
         rates = (
             min(
                 self.s.max_rate,
-                self.s.base_rate + self.s.rate_step * (f // self.window),
+                self._base_rate(category) + self.s.rate_step * (f // self.window),
             )
-            for f in self.active.values()
+            for category, f in self.active.items()
         )
         return max(rates, default=0.0)
+
+    def _base_rate(self, category):
+        if category == "room_loop":
+            return self.s.room_loop_base_rate
+        return self.s.base_rate
 
     def enter_room(self, t, room, was_new):
         self.route.append((t, room, was_new))

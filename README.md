@@ -97,7 +97,7 @@ There is no blanket penalty for staying in one room. Over a rolling 15-second wi
 - **Room loop**: alternating at least three times through the same sequence of previously visited rooms.
 - **Menu loop**: opening the inventory at least three times in the window with the same repeating equipment changes.
 
-After a complete window the rate starts at 0.01 per second and rises by 0.01 for each further 15 seconds of the same pattern, up to 0.04. Leaving a room flushes the local position history. Reaching a dialogue page not seen this episode, or any durable progress, clears local evidence; reopening the same dialogue does not.
+After a complete window the rate starts at 0.01 per second (0.02 for room loops, the dominant pattern in early training runs) and rises by 0.01 for each further 15 seconds of the same pattern, up to 0.04. Leaving a room flushes the local position history. Reaching a dialogue page not seen this episode, or any durable progress, clears local evidence; reopening the same dialogue does not.
 
 ### Episode limits
 

@@ -380,7 +380,9 @@ class StagnationTests(unittest.TestCase):
             ),
         )
         self.assertIn("room_loop", results[-1][4]["stagnation_categories"])
-        self.assertLess(total(results), 0)
+        rates = [r[4]["stagnation_rate"] for r in results if r[4]["stagnation_rate"]]
+        self.assertAlmostEqual(rates[0], 0.02)
+        self.assertLess(total(results, "stagnation"), 0)
 
     def test_repeated_menu_toggling_while_moving(self):
         env, memory = make_env()

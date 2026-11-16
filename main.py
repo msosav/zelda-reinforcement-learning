@@ -47,6 +47,7 @@ config = {
     "stagnation": {
         "window_seconds": 15.0,
         "base_rate": 0.01,
+        "room_loop_base_rate": 0.02,  # bouncing between known rooms costs more
         "rate_step": 0.01,
         "max_rate": 0.04,
         "jitter_pixels": 4,
@@ -100,7 +101,9 @@ if __name__ == "__main__":
             batch_size=512,
             n_epochs=4,
             gamma=0.997,
-            ent_coef=0.01,
+            learning_rate=1e-4,
+            ent_coef=0.02,  # keep exploring beyond the first few rooms
+            target_kl=0.03,  # stop an update early once the policy has moved enough
             device=training["device"],
             tensorboard_log=config["log_dir"],
         )
