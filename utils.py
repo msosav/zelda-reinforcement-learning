@@ -89,6 +89,10 @@ class CheckpointAndLoggingCallback(BaseCallback):
         self.episode_lengths = None
 
     def _init_callback(self) -> None:
+        # Save into a folder named after the TensorBoard run (e.g. checkpoints/PPO_10).
+        log_dir = getattr(self.logger, "dir", None)
+        if self.save_path is not None and log_dir:
+            self.save_path = os.path.join(self.save_path, os.path.basename(log_dir))
         if self.save_path is not None:
             os.makedirs(self.save_path, exist_ok=True)
         self.episode_returns = np.zeros(self.training_env.num_envs)
@@ -123,7 +127,16 @@ class CheckpointAndLoggingCallback(BaseCallback):
         return True
 
     def _log_episode(self, episode_return, episode_length, info):
-        record = self.logger.record_mean
+        # Go-Explore episodes start mid-game; keep them apart from bed starts.
+        start = info.get("start", "initial")
+        prefix = "game/" if start == "initial" else "game/archive/"
+
+        def record(key, value):
+            self.logger.record_mean(prefix + key[len("game/") :], value)
+
+        self.logger.record_mean("game/archive_start_rate", float(start == "archive"))
+        if "archive_cells" in info:
+            self.logger.record("game/archive_cells", info["archive_cells"])
         record("game/episode_return", float(episode_return))
         record("game/episode_length", int(episode_length))
         if "milestones" not in info:

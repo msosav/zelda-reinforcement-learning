@@ -90,6 +90,7 @@ STAGNATION_KEYS = (
 )
 EPISODE_KEYS = ("no_progress_seconds", "max_seconds")
 OPTIONAL_SIGNAL_KEYS = ("enemy_defeat", "story_milestones")
+GO_EXPLORE_KEYS = ("start_probability", "cell_pixels", "max_cells")
 
 
 def _require_section(config, name, keys):
@@ -178,6 +179,11 @@ def validate_config(config: dict) -> SimpleNamespace:
             + UNAVAILABLE_SIGNALS["story_milestone"]
         )
 
+    go_explore = _require_section(config, "go_explore", GO_EXPLORE_KEYS)
+    _number("go_explore", go_explore, "start_probability", high=1.0)
+    _number("go_explore", go_explore, "cell_pixels", low=8, high=256, integer=True)
+    _number("go_explore", go_explore, "max_cells", low=1, high=100000, integer=True)
+
     window_frames = round(stagnation["window_seconds"] * FRAMES_PER_SECOND)
     return SimpleNamespace(
         action_freq=action_freq,
@@ -186,6 +192,7 @@ def validate_config(config: dict) -> SimpleNamespace:
         stagnation=SimpleNamespace(**stagnation, window_frames=window_frames),
         no_progress_frames=round(episode["no_progress_seconds"] * FRAMES_PER_SECOND),
         max_frames=round(episode["max_seconds"] * FRAMES_PER_SECOND),
+        go_explore=SimpleNamespace(**go_explore),
     )
 
 
@@ -470,6 +477,8 @@ class EpisodeState:
         self.instrument_count = 0
         self.progress = False
         self.health = 0
+        self.last_sample = None
+        self.start = "initial"
         self.dialog_waiting = False
 
 
@@ -500,24 +509,34 @@ class ZeldaGymEnv(gym.Env):
         if not self.debug:
             self.pyboy.set_emulation_speed(0)
 
-        self.valid_actions = [
-            WindowEvent.PRESS_ARROW_DOWN,
-            WindowEvent.PRESS_ARROW_LEFT,
-            WindowEvent.PRESS_ARROW_RIGHT,
-            WindowEvent.PRESS_ARROW_UP,
-            WindowEvent.PRESS_BUTTON_A,
-            WindowEvent.PRESS_BUTTON_B,
-            WindowEvent.PRESS_BUTTON_START,
+        down = (WindowEvent.PRESS_ARROW_DOWN, WindowEvent.RELEASE_ARROW_DOWN)
+        left = (WindowEvent.PRESS_ARROW_LEFT, WindowEvent.RELEASE_ARROW_LEFT)
+        right = (WindowEvent.PRESS_ARROW_RIGHT, WindowEvent.RELEASE_ARROW_RIGHT)
+        up = (WindowEvent.PRESS_ARROW_UP, WindowEvent.RELEASE_ARROW_UP)
+        a = (WindowEvent.PRESS_BUTTON_A, WindowEvent.RELEASE_BUTTON_A)
+        b = (WindowEvent.PRESS_BUTTON_B, WindowEvent.RELEASE_BUTTON_B)
+        start = (WindowEvent.PRESS_BUTTON_START, WindowEvent.RELEASE_BUTTON_START)
+        # Each action presses its buttons together. Direction+B walks with the B item in
+        # use, e.g. with the shield raised, which is needed to push sea urchins on the
+        # beach (runtime-verified in room E1).
+        actions = [
+            (down,),
+            (left,),
+            (right,),
+            (up,),
+            (a,),
+            (b,),
+            (start,),
+            (down, b),
+            (left, b),
+            (right, b),
+            (up, b),
         ]
-
+        self.valid_actions = [
+            tuple(press for press, _ in buttons) for buttons in actions
+        ]
         self.release_actions = [
-            WindowEvent.RELEASE_ARROW_DOWN,
-            WindowEvent.RELEASE_ARROW_LEFT,
-            WindowEvent.RELEASE_ARROW_RIGHT,
-            WindowEvent.RELEASE_ARROW_UP,
-            WindowEvent.RELEASE_BUTTON_A,
-            WindowEvent.RELEASE_BUTTON_B,
-            WindowEvent.RELEASE_BUTTON_START,
+            tuple(release for _, release in buttons) for buttons in actions
         ]
 
         self.observation_space = Dict(
@@ -549,6 +568,8 @@ class ZeldaGymEnv(gym.Env):
         )
 
         self._ep = EpisodeState(self.settings)
+        # Go-Explore archive of savestates; it persists across episodes by design.
+        self.archive = {}
 
     def step(self, action):
         ep = self._ep
@@ -556,6 +577,7 @@ class ZeldaGymEnv(gym.Env):
 
         self._process_durable_state()
         ep.ledger.debit("stagnation", ep.stagnation.take_charge())
+        self._archive_current_cell()
 
         terminated = ep.dead
         truncation_reason = None
@@ -579,10 +601,12 @@ class ZeldaGymEnv(gym.Env):
 
     def run_action(self, action):
         """Holds the button for PRESS_FRAMES, then releases it, sampling RAM every frame."""
-        self.pyboy.send_input(self.valid_actions[action])
+        for event in self.valid_actions[action]:
+            self.pyboy.send_input(event)
         for frame in range(self.action_freq):
             if frame == PRESS_FRAMES:
-                self.pyboy.send_input(self.release_actions[action])
+                for event in self.release_actions[action]:
+                    self.pyboy.send_input(event)
             if not self.pyboy.tick(1, frame == self.action_freq - 1):
                 raise RuntimeError("Emulation stopped during an action.")
             self._process_frame(self._read_frame())
@@ -616,6 +640,7 @@ class ZeldaGymEnv(gym.Env):
         ep.frames += 1
         if ep.dead:
             return
+        ep.last_sample = sample
         ep.health = sample.health
         if sample.health == 0:
             ep.dead = True
@@ -695,6 +720,47 @@ class ZeldaGymEnv(gym.Env):
         ep.stagnation.enter_room(ep.controllable_frames, room, was_new)
         if ep.progress:
             self._mark_progress()
+
+    def _cell_key(self, sample: FrameSample):
+        size = self.settings.go_explore.cell_pixels
+        equipment = tuple(sorted(self._ep.equipment, key=str))
+        return (
+            sample.room,
+            sample.x // size,
+            sample.y // size,
+            equipment,
+            len(self._ep.instruments),
+        )
+
+    def _archive_current_cell(self):
+        """Saves a Go-Explore start state the first time a controllable cell is reached."""
+        settings = self.settings.go_explore
+        ep = self._ep
+        sample = ep.last_sample
+        if settings.start_probability == 0 or ep.dead or sample is None:
+            return
+        if not sample.controllable or sample.dialog_state & DIALOG_STATE_MASK:
+            return
+        key = self._cell_key(sample)
+        if key in self.archive:
+            self.archive[key]["seen"] += 1
+            return
+        if len(self.archive) >= settings.max_cells:
+            # Drop the cell that has already been explored from the most.
+            del self.archive[max(self.archive, key=lambda k: self.archive[k]["chosen"])]
+        state = BytesIO()
+        self.pyboy.save_state(state)
+        self.archive[key] = {"state": state.getvalue(), "chosen": 0, "seen": 1}
+
+    def _choose_archive_cell(self):
+        """Picks a cell, favoring those chosen least often (1/sqrt(1 + chosen))."""
+        keys = list(self.archive)
+        weights = np.array([1 / math.sqrt(1 + self.archive[k]["chosen"]) for k in keys])
+        cell = self.archive[
+            keys[self.np_random.choice(len(keys), p=weights / weights.sum())]
+        ]
+        cell["chosen"] += 1
+        return cell
 
     def _mark_progress(self):
         ep = self._ep
@@ -858,6 +924,8 @@ class ZeldaGymEnv(gym.Env):
                 "instruments": ep.instrument_count,
             },
             "availability": dict(self.availability),
+            "start": ep.start,
+            "archive_cells": len(self.archive),
         }
 
     def start_sequence(self):
@@ -919,8 +987,15 @@ class ZeldaGymEnv(gym.Env):
     def reset(self, **kwargs):
         super().reset(**kwargs)
 
+        start = "initial"
         if self._initial_state is None:
             self.start_sequence()
+        elif (
+            self.archive
+            and self.np_random.random() < self.settings.go_explore.start_probability
+        ):
+            start = "archive"
+            self.pyboy.load_state(BytesIO(self._choose_archive_cell()["state"]))
         else:
             self._initial_state.seek(0)
             self.pyboy.load_state(self._initial_state)
@@ -928,6 +1003,7 @@ class ZeldaGymEnv(gym.Env):
         self._fitness = 0
         self._previous_fitness = 0
         self._ep = ep = EpisodeState(self.settings)
+        ep.start = start
 
         # Seed every baseline from the restored snapshot so initial conditions earn nothing.
         sample = self._read_frame()
@@ -945,7 +1021,11 @@ class ZeldaGymEnv(gym.Env):
         ep.dialog_waiting = dialog_state == DIALOG_STATE_WAITING
         ep.house_exit_available = sample.room == MARIN_HOUSE_ROOM
         self.availability["house_exit"] = ep.house_exit_available
-        if not ep.house_exit_available and not self._warned_house_exit:
+        if (
+            start == "initial"
+            and not ep.house_exit_available
+            and not self._warned_house_exit
+        ):
             self._warned_house_exit = True
             warnings.warn(
                 "house_exit reward disabled: the reset snapshot is not in Marin's house "

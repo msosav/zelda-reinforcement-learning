@@ -63,6 +63,7 @@ def make_config(**overrides):
     config = copy.deepcopy(main.config)
     config["rom_path"] = "unused.gb"
     config["game_with_sound"] = False
+    config["go_explore"]["start_probability"] = 0.0
     for path, value in overrides.items():
         section, _, key = path.partition("__")
         if key:
@@ -474,6 +475,97 @@ class EpisodeBoundaryTests(unittest.TestCase):
         self.assertEqual(env.step(0)[1], 0)
 
 
+class GoExploreTests(unittest.TestCase):
+    def outside(self, memory, x=0x38):
+        memory[ram.ADDR_IS_INDOOR] = 0
+        memory[ram.ADDR_MAP_ID] = 0
+        memory[ram.ADDR_LINK_X] = x
+
+    def test_new_controllable_cells_are_archived_once(self):
+        env, memory = make_env(go_explore__start_probability=0.5)
+        env.step(0)
+        self.assertEqual(len(env.archive), 1)
+        env.step(0)
+        self.assertEqual(len(env.archive), 1)
+        self.outside(memory, x=0x80)
+        env.step(0)
+        self.assertEqual(len(env.archive), 2)
+
+        memory[ram.ADDR_ROOM_TRANSITION_STATE] = 1
+        memory[ram.ADDR_LINK_X] = 0x10
+        env.step(0)
+        memory[ram.ADDR_ROOM_TRANSITION_STATE] = 0
+        memory[ram.ADDR_DIALOG_STATE] = 0x89
+        env.step(0)
+        self.assertEqual(len(env.archive), 2)
+
+        memory[ram.ADDR_DIALOG_STATE] = 0
+        memory[0xDB00] = 0x04
+        env.step(0)
+        # Only the shield cell is new: forced and dialogue step ends are not archived.
+        self.assertEqual(len(env.archive), 3)
+        self.assertTrue(any(key[3] == (0x04,) for key in env.archive))
+
+    def test_archive_starts_restore_the_cell_and_reseed_baselines(self):
+        env, memory = make_env(go_explore__start_probability=1.0)
+        _, info = env.reset()
+        self.assertEqual(info["start"], "initial")
+
+        self.outside(memory, x=0x80)
+        memory[0xD8A3] = 0x80
+        memory[0xDB00] = 0x04
+        env.step(0)
+        memory[ram.ADDR_LINK_X] = 0x10
+        memory[0xDB00] = 0x00
+
+        _, info = env.reset()
+        self.assertEqual(info["start"], "archive")
+        self.assertEqual(memory[ram.ADDR_LINK_X], 0x80)
+        self.assertEqual(memory[0xDB00], 0x04)
+        self.assertFalse(info["availability"]["house_exit"])
+        self.assertEqual(env.step(0)[1], 0)
+
+    def test_full_archive_drops_the_most_chosen_cell(self):
+        env, memory = make_env(
+            go_explore__start_probability=0.5, go_explore__max_cells=2
+        )
+        env.step(0)
+        first = next(iter(env.archive))
+        env.archive[first]["chosen"] = 5
+        memory[ram.ADDR_LINK_X] = 0x80
+        env.step(0)
+        memory[ram.ADDR_LINK_Y] = 0x80
+        env.step(0)
+        self.assertEqual(len(env.archive), 2)
+        self.assertNotIn(first, env.archive)
+
+    def test_start_probability_zero_disables_the_archive(self):
+        env, memory = make_env()
+        self.outside(memory, x=0x80)
+        env.step(0)
+        self.assertEqual(env.archive, {})
+        self.assertEqual(env.reset()[1]["start"], "initial")
+
+
+class ActionTests(unittest.TestCase):
+    def test_direction_b_actions_press_and_release_both_buttons(self):
+        from pyboy.utils import WindowEvent
+
+        env, _ = make_env()
+        self.assertEqual(env.action_space.n, 11)
+        env.pyboy.inputs.clear()
+        env.step(7)
+        self.assertEqual(
+            env.pyboy.inputs,
+            [
+                WindowEvent.PRESS_ARROW_DOWN,
+                WindowEvent.PRESS_BUTTON_B,
+                WindowEvent.RELEASE_ARROW_DOWN,
+                WindowEvent.RELEASE_BUTTON_B,
+            ],
+        )
+
+
 class AccountingAndInterfaceTests(unittest.TestCase):
     def test_component_deltas_reconcile_with_reward(self):
         env, memory = make_env(reward_scale=0.5)
@@ -524,6 +616,8 @@ class AccountingAndInterfaceTests(unittest.TestCase):
             {"episode": {"max_seconds": 10}},
             {"optional_signals__enemy_defeat": True},
             {"optional_signals__story_milestones": ["sword"]},
+            {"go_explore__start_probability": 1.5},
+            {"go_explore__cell_pixels": 4},
         ]
         for overrides in invalid:
             with self.subTest(overrides=overrides):

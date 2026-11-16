@@ -1,14 +1,23 @@
 import copy
 import os
+import sys
 import unittest
 import warnings
+from io import BytesIO
 from unittest.mock import patch
 
 import main
 from config import memory_addresses as ram
 from config.gym import FRAMES_PER_SECOND, ZeldaGymEnv
 
-DOWN, LEFT, RIGHT, UP, A, B, START = range(7)
+DOWN, LEFT, RIGHT, UP, A, B, START, DOWN_B, LEFT_B, RIGHT_B, UP_B = range(11)
+
+sys.path.insert(
+    0,
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"
+    ),
+)
 ROM = main.config["rom_path"]
 
 
@@ -24,6 +33,7 @@ class RealRomTraceTests(unittest.TestCase):
 
         config = copy.deepcopy(main.config)
         config["game_with_sound"] = False
+        config["go_explore"]["start_probability"] = 0.0
         pyboy = PyBoy(ROM, window="null", sound_emulated=False)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -194,6 +204,33 @@ class RealRomTraceTests(unittest.TestCase):
         self.assertEqual(info["unique_rooms"], 1)
         self.assertTrue(self.env.observation_space.contains(observation))
         self.assertEqual(self.step(B)[1], 0)
+
+    def test_shield_push_moves_sea_urchins_on_the_beach(self):
+        import map_reachability as mapper
+
+        # Find room E1 (above the beach) with the item-free search, then start there.
+        probe = mapper.Probe()
+        try:
+            probe.leave_house_with_shield()
+            _, rooms, _, _ = mapper.explore(probe, 40, 2000, target=(0, 0, 0xE1))
+        finally:
+            probe.pyboy.stop(save=False)
+        self.env._initial_state = BytesIO(rooms[(0, 0, 0xE1)])
+
+        def push(action):
+            self.env.reset()
+            self.goto(0x58, 0x3C)
+            self.goto(0x6C, 0x3C)
+            for _ in range(60):
+                self.step(action)
+                self.memory[ram.ADDR_CURRENT_HEALTH] = 0x18
+                if self.memory[ram.ADDR_LINK_Y] >= 0x60:
+                    break
+            return self.memory[ram.ADDR_LINK_Y]
+
+        # The urchins below the gap block plain walking but yield to the raised shield.
+        self.assertLess(push(DOWN), 0x50)
+        self.assertGreaterEqual(push(DOWN_B), 0x60)
 
 
 if __name__ == "__main__":

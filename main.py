@@ -62,6 +62,14 @@ config = {
         "no_progress_seconds": 180.0,
         "max_seconds": 1800.0,
     },
+    # Go-Explore: some episodes start from a saved state where an earlier episode first
+    # reached a new 32-px region of a room, so time goes to the frontier instead of
+    # replaying the opening. Set start_probability to 0 to always start in bed.
+    "go_explore": {
+        "start_probability": 0.4,
+        "cell_pixels": 32,
+        "max_cells": 2000,
+    },
     # Unverified signals stay disabled; enabling them fails explicitly.
     "optional_signals": {
         "enemy_defeat": False,
@@ -113,8 +121,9 @@ if __name__ == "__main__":
         finally:
             env.close()
     elif mode == "test":
-        # Watch a checkpoint at real-time speed in a single window.
-        env = PreprocessEnv(config, debug=True)
+        # Watch a checkpoint at real-time speed in a single window, always from bed.
+        go_explore = {**config["go_explore"], "start_probability": 0.0}
+        env = PreprocessEnv({**config, "go_explore": go_explore}, debug=True)
         checkpoint = sys.argv[2]
         try:
             model = PPO.load(checkpoint, env=env)

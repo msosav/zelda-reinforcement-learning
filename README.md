@@ -49,20 +49,20 @@ uv run main.py train
 
 Training settings live in `config["training"]` in `main.py`. By default it runs 8 emulators in parallel without a window or sound and trains on the Apple GPU (`"device": "mps"`; use `"cpu"` elsewhere). On an Apple M5 Pro that is about 550 steps per second, so the default 10 million steps take roughly 5 hours. Training wraps the environments in `VecNormalize` to scale rewards for the value function; TensorBoard still logs raw episode returns. To watch training instead, set `"n_envs": 1` and `"show_window": True`, plus `"sound": True` if you want audio; the window and sound require a single emulator. Training runs unthrottled, so a visible window plays much faster than real time (press Space in the window to toggle 1x speed). `rollout_steps` is split across the emulators and must be divisible by `n_envs`.
 
-Checkpoints (about 48 MB each) are saved to `checkpoints/` every `checkpoint_freq` (50,000) environment steps; monitor progress with `uv run tensorboard --logdir logs/`. Testing always runs a single emulator at real-time speed with the window, using `game_with_sound` for audio.
+Checkpoints (about 48 MB each) are saved every `checkpoint_freq` (50,000) environment steps into a folder named after the TensorBoard run, for example `checkpoints/PPO_10/` for `logs/PPO_10`, so runs never overwrite each other; monitor progress with `uv run tensorboard --logdir logs/`. Testing always runs a single emulator at real-time speed with the window, using `game_with_sound` for audio.
 
 ### Testing
 
 To test the agent, run the following command:
 
 ```bash
-uv run main.py test ./checkpoints/<checkpoint>.zip
+uv run main.py test ./checkpoints/<run>/<checkpoint>.zip
 ```
 
 Example:
 
 ```bash
-uv run main.py test ./checkpoints/best_model_5000.zip
+uv run main.py test ./checkpoints/PPO_10/best_model_50000.zip
 ```
 
 ## Reward System
@@ -103,6 +103,14 @@ After a complete window the rate starts at 0.01 per second (0.02 for room loops,
 
 Episodes are truncated after 3 minutes of controllable time without durable progress (a new room, new equipment or upgrade, leaving the house, or an instrument) or after 30 minutes of emulated time. Resource peaks, healing, movement, menus, and revisited rooms do not reset the progress clock. Death takes precedence over a simultaneous timeout. `info` reports the termination or truncation reason, per-component step rewards (which sum to the step reward), cumulative credits and debits, remaining budgets, stagnation state, and milestone times.
 
+### Actions
+
+The agent has 11 actions: the four directions, A, B, START, and the four directions with B held. Each action presses its buttons together for 8 frames and then releases them. Direction+B walks with the B item in use; with the shield on B that raises the shield, which is the only way to push the sea urchins blocking the beach where the sword lies (`scripts/map_reachability.py` and the real-ROM test confirmed that walking alone cannot pass them). Changing the action space makes earlier checkpoints incompatible.
+
+### Go-Explore starts
+
+Training runs showed the agent learning the opening and then spending every episode replaying it before running out of time at the edge of the explored area. To spend that time at the frontier instead, each environment keeps an archive of savestates (`config["go_explore"]`). A cell is a room, a 32-pixel region of that room, the equipment owned, and the number of instruments; the first time an episode ends a step in a new cell (with Link controllable and no dialogue open), the environment saves the game there. On reset, `start_probability` (40%) of episodes load an archived cell instead of the wake-up snapshot, preferring cells chosen least often (weight 1/√(1 + times chosen)). All reward baselines are reseeded from the loaded state, so rooms, equipment, and resources it already has earn nothing again. Each emulator keeps its own archive in memory (up to `max_cells`; when full, the most-chosen cell is dropped), so it starts empty in every training run. `test` mode always starts from bed. TensorBoard logs episodes started from the archive under `game/archive/*`, keeping `game/*` comparable with earlier runs; `game/archive_start_rate` and `game/archive_cells` track the archive.
+
 ### Signal verification and disabled components
 
 RAM addresses come from the Data Crystal RAM map and were checked against the local ROM with controlled PyBoy traces (see `config/memory_addresses.py`). The following stay disabled, excluded from totals, and are listed at startup and in TensorBoard under `game/availability/*`, because no reliable RAM signal has been verified:
@@ -124,6 +132,12 @@ The training callback logs episode return and length, house-exit and sword rates
 ```bash
 uv run python -m unittest discover -s tests
 ZELDA_REAL_ROM_TESTS=1 uv run python -m unittest tests/test_real_rom.py  # scripted trace on the real ROM
+```
+
+`scripts/map_reachability.py` maps which rooms can be reached from outside Marin's house with the shield and no other items, by searching every position in every room through savestates (`--screenshots DIR` saves each room, `--shield-push` also tries walking with the shield raised).
+
+```bash
+uv run python scripts/map_reachability.py
 ```
 
 Improved gameplay has not been measured yet: comparing the previous rewards, repaired item/exploration rewards, and this shaping across several seeds of one-million-step training remains to be done.

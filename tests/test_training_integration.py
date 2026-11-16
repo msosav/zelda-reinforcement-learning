@@ -1,3 +1,4 @@
+import os
 import tempfile
 import unittest
 import warnings
@@ -54,7 +55,7 @@ class LegacySpaceEnv(gym.Env):
             "rupees": Box(0, 255, (1,), np.uint8),
         }
     )
-    action_space = Discrete(7)
+    action_space = Discrete(11)
 
 
 class VectorStackTests(unittest.TestCase):
@@ -105,6 +106,11 @@ class VectorStackTests(unittest.TestCase):
         self.assertIn("game/debits/stagnation", logger.means)
         self.assertEqual(callback.episode_returns[0], 0)
 
+        callback._log_episode(5.0, 7, {**info, "start": "archive"})
+        self.assertEqual(logger.means["game/archive/episode_return"], [5.0])
+        self.assertEqual(len(logger.means["game/episode_return"]), 1)
+        self.assertEqual(logger.means["game/archive_start_rate"], [0.0, 1.0])
+
     def test_callback_logs_raw_returns_under_reward_normalization(self):
         venv, memory = make_vec_env(episode__max_seconds=2)
         venv = VecNormalize(venv, norm_obs=False, norm_reward=True)
@@ -132,6 +138,20 @@ class VectorStackTests(unittest.TestCase):
         raw = logger.means["game/episode_return"][0]
         self.assertGreater(raw, 12)
         self.assertNotAlmostEqual(raw, normalized)
+
+    def test_checkpoints_go_into_a_folder_named_after_the_run(self):
+        venv, _ = make_vec_env()
+        with tempfile.TemporaryDirectory() as directory:
+            model = PPO(
+                "MultiInputPolicy", venv, n_steps=8, tensorboard_log=f"{directory}/logs"
+            )
+            callback = CheckpointAndLoggingCallback(
+                check_freq=8, save_path=f"{directory}/checkpoints"
+            )
+            model.learn(total_timesteps=8, callback=callback, tb_log_name="PPO")
+            self.assertEqual(
+                os.listdir(f"{directory}/checkpoints/PPO_1"), ["best_model_8.zip"]
+            )
 
     def test_window_and_sound_require_a_single_environment(self):
         invalid = [
