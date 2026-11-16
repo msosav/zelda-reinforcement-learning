@@ -18,7 +18,7 @@ config = {
     # Defaults suit an Apple M5 Pro: parallel headless emulators, CNN on the GPU. To watch
     # training, set n_envs to 1 and enable show_window (and sound if wanted).
     "training": {
-        "n_envs": 4,
+        "n_envs": 8,
         "show_window": False,  # requires n_envs = 1
         "sound": False,  # requires show_window
         "device": "mps",  # Apple GPU; ~2.5x faster than "cpu" for the CNN policy
